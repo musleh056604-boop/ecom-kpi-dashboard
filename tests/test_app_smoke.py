@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def run_app() -> AppTest:
-    return AppTest.from_file(str(PROJECT_ROOT / "app.py"), default_timeout=30).run()
+    return AppTest.from_file(str(PROJECT_ROOT / "owner_app.py"), default_timeout=30).run()
 
 
 def test_app_renders_start_screen_without_upload():
@@ -28,6 +28,7 @@ def test_app_processes_sample_csv_and_renders_kpis_and_charts():
     app.run()
 
     assert not app.exception
+    assert len(app.link_button) == 1
     assert app.success[0].value == "تمت قراءة الملف: 10 صفاً و7 عموداً."
     metrics = {item.label: item.value for item in app.metric}
     assert metrics["ROAS"] == "3.83×"
@@ -89,4 +90,17 @@ def test_app_shows_safe_user_facing_error_for_broken_xlsx():
     app.run()
 
     assert not app.exception
+    assert len(app.link_button) == 1
     assert any("ملف Excel تالف" in item.value for item in app.error)
+
+
+def test_app_offers_whatsapp_paid_service_without_checkout():
+    app = run_app()
+
+    assert not app.exception
+    assert len(app.link_button) == 1
+    contact = app.link_button[0]
+    assert contact.label == "تواصل عبر واتساب"
+    assert contact.url.startswith("https://wa.me/966559665030?")
+    assert any("50–150" in item.value for item in app.markdown)
+    assert any("الدفع" in item.value and "يدوي" in item.value and "لا يوجد دفع" in item.value for item in app.caption)
